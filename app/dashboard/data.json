@@ -1,0 +1,125 @@
+{
+  "overview": {
+    "timeSaved": {
+      "value": 184.3,
+      "unit": "hours",
+      "period": "this month",
+      "change": 12.3,
+      "trend": "up"
+    },
+    "automations": {
+      "value": 12,
+      "period": "active",
+      "change": 2,
+      "trend": "up"
+    },
+    "successRate": {
+      "value": 98.5,
+      "unit": "%",
+      "change": 2.1,
+      "trend": "up"
+    },
+    "syncedToday": {
+      "value": 247,
+      "period": "today",
+      "change": 15.2,
+      "trend": "up"
+    }
+  },
+  "recentActivity": [
+    {
+      "id": "1",
+      "type": "sync",
+      "description": "Deal 'Acme Corp' synced to 4 targets",
+      "time": "2 min ago",
+      "status": "success",
+      "timeSaved": 210
+    },
+    {
+      "id": "2",
+      "type": "sync",
+      "description": "Sheet updated: Q4 forecast",
+      "time": "5 min ago",
+      "status": "success",
+      "timeSaved": 180
+    },
+    {
+      "id": "3",
+      "type": "email",
+      "description": "Email sent: Follow-up scheduled",
+      "time": "8 min ago",
+      "status": "success",
+      "timeSaved": 120
+    },
+    {
+      "id": "4",
+      "type": "pattern",
+      "description": "Pattern detected: CRM→Slack→Sheet (80%)",
+      "time": "15 min ago",
+      "status": "info",
+      "timeSaved": 0
+    },
+    {
+      "id": "5",
+      "type": "sync",
+      "description": "Deal 'TechStart Inc' synced to 3 targets",
+      "time": "23 min ago",
+      "status": "success",
+      "timeSaved": 195
+    }
+  ],
+  "chartData": {
+    "timeSaved": [
+      { "date": "2025-11-01", "value": 145 },
+      { "date": "2025-11-02", "value": 152 },
+      { "date": "2025-11-03", "value": 148 },
+      { "date": "2025-11-04", "value": 161 },
+      { "date": "2025-11-05", "value": 158 },
+      { "date": "2025-11-06", "value": 167 },
+      { "date": "2025-11-07", "value": 173 },
+      { "date": "2025-11-08", "value": 169 },
+      { "date": "2025-11-09", "value": 178 },
+      { "date": "2025-11-10", "value": 182 },
+      { "date": "2025-11-11", "value": 184 }
+    ],
+    "syncsPerDay": [
+      { "date": "2025-11-01", "value": 189 },
+      { "date": "2025-11-02", "value": 203 },
+      { "date": "2025-11-03", "value": 197 },
+      { "date": "2025-11-04", "value": 218 },
+      { "date": "2025-11-05", "value": 225 },
+      { "date": "2025-11-06", "value": 234 },
+      { "date": "2025-11-07", "value": 241 },
+      { "date": "2025-11-08", "value": 238 },
+      { "date": "2025-11-09", "value": 245 },
+      { "date": "2025-11-10", "value": 243 },
+      { "date": "2025-11-11", "value": 247 }
+    ]
+  },
+  "automationRules": [
+    {
+      "id": "1",
+      "name": "CRM to Slack + Sheets",
+      "pattern": ["crm", "slack", "sheets"],
+      "frequency": 85,
+      "enabled": true,
+      "timesExecuted": 342
+    },
+    {
+      "id": "2",
+      "name": "Deal Update Full Sync",
+      "pattern": ["crm", "slack", "sheets", "email", "calendar"],
+      "frequency": 75,
+      "enabled": true,
+      "timesExecuted": 128
+    },
+    {
+      "id": "3",
+      "name": "Sheet to Email",
+      "pattern": ["sheets", "email"],
+      "frequency": 62,
+      "enabled": true,
+      "timesExecuted": 89
+    }
+  ]
+}
