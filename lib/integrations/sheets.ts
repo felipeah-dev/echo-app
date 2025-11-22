@@ -127,21 +127,21 @@ export async function appendDealToForecast(deal: {
 }): Promise<IntegrationResult> {
   const now = new Date();
 
-  // Convertir a hora de CDMX y formatear YYYY-MM-DD HH:mm:ss
+  // Hora local de Mazatlán (Nayarit) en formato YYYY-MM-DD HH:mm:ss
   const mxTime = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/Mexico_City" })
+    now.toLocaleString("en-US", { timeZone: "America/Mazatlan" })
   );
 
   const pad = (n: number) => n.toString().padStart(2, "0");
 
-  const timestamp = `${mxTime.getFullYear()}-${pad(mxTime.getMonth() + 1)}-${pad(
-    mxTime.getDate()
-  )} ${pad(mxTime.getHours())}:${pad(mxTime.getMinutes())}:${pad(
-    mxTime.getSeconds()
-  )}`;
+  const timestamp = `${mxTime.getFullYear()}-${pad(
+    mxTime.getMonth() + 1
+  )}-${pad(mxTime.getDate())} ${pad(mxTime.getHours())}:${pad(
+    mxTime.getMinutes()
+  )}:${pad(mxTime.getSeconds())}`;
 
   const row = [
-    timestamp,         // 👈 ahora es hora local CDMX
+    timestamp, // 👈 ahora es hora local Mazatlán/Nayarit
     deal.dealId,
     deal.customer,
     deal.amount,
@@ -150,6 +150,7 @@ export async function appendDealToForecast(deal: {
 
   return appendToSheet(row);
 }
+
 
 /**
  * Read data from Google Sheet
