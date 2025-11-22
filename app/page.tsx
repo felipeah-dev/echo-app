@@ -18,18 +18,18 @@ export default function LandingPage() {
 
   const stats = [
     { 
-      number: "35%", 
+      number: "30-40%", 
       label: "of work time is repetitive copy/paste",
       gradient: "from-purple-500 to-pink-500"
     },
     { 
-      number: "5 hours", 
-      label: "wasted monthly per sales rep",
+      number: "3-5 hours", 
+      label: "wasted daily per sales rep",
       gradient: "from-pink-500 to-red-500"
     },
     { 
-      number: "$9,200", 
-      label: "lost annually per team member",
+      number: "$120K", 
+      label: "lost annually per 10-person team",
       gradient: "from-red-500 to-orange-500"
     }
   ]
@@ -148,7 +148,7 @@ export default function LandingPage() {
 
             {/* Subheadline */}
             <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-              35% of your workday is shadow work—copying the same data across Slack, 
+              30-40% of your workday is shadow work—copying the same data across Slack, 
               Google Sheets, Email, and Calendar. ECHO eliminates it with one click, 
               powered by IBM watsonx Orchestrate.
             </p>
