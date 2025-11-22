@@ -22,7 +22,7 @@ function getCalendarClient() {
     } else {
       throw new Error("Service account must be provided as JSON string in .env");
     }
-  } catch (error) {
+  } catch {
     throw new Error("Invalid Google service account JSON");
   }
 
@@ -65,7 +65,7 @@ export async function createCalendarEvent(options: {
     }
 
     // Create event with retry logic
-    const result = await retry(
+    await retry(
       async () => {
         const calendar = getCalendarClient();
         return await calendar.events.insert({

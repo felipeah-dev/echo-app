@@ -26,7 +26,7 @@ function getSheetsClient() {
       // For now, throw error
       throw new Error("Service account must be provided as JSON string in .env");
     }
-  } catch (error) {
+  } catch  {
     throw new Error("Invalid Google service account JSON");
   }
 

@@ -85,7 +85,7 @@
     timestamp: Date;
     type: "intent" | "rule" | "pattern";
     description: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
     }
 
     /**

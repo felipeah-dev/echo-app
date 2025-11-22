@@ -48,7 +48,7 @@ export async function sendSlackMessage(
     }
 
     // Send message with retry logic
-    const result = await retry(
+    await retry(
       async () => {
         const client = getSlackClient();
         return await client.chat.postMessage({

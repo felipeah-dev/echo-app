@@ -286,7 +286,7 @@ CRITICAL: The 'blocks' argument must be a valid JSON array, not a string.
     // GMAIL (vía Echo Proxy)
     // ========================================
     if (targets.includes("email")) {
-        const customerEmail = (data as any).customerEmail || "customer@example.com";
+        const customerEmail = (data as { customerEmail?: string }).customerEmail || "customer@example.com";
         
         userMessage += `TASK 2: Send email via Echo Backend
 
