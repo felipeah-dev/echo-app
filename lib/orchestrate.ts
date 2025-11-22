@@ -1,6 +1,6 @@
 // =============================================================================
 // ECHO - Orchestration Layer (watsonx Orchestrate + Direct Execution)
-// FIXED VERSION - IBM Cloud API endpoints
+// FIXED VERSION - IBM Cloud API endpoints + Thread Messages Debug
 // =============================================================================
 
 import { sendDealNotification } from "@/lib/integrations/slack";
@@ -209,6 +209,14 @@ export class WatsonxExecutor implements OrchestrationExecutor {
             console.log("⏳ Waiting for run completion...");
             const finalStatus = await this.waitForRunCompletion(runStart.run_id);
 
+            // 🔍 Debug: Ver mensajes del thread
+            try {
+                const messages = await this.getThreadMessages(runStart.thread_id);
+                console.log("🧵 Thread messages:", JSON.stringify(messages, null, 2));
+            } catch (err) {
+                console.warn("⚠️ Could not fetch thread messages:", err);
+            }
+
             if (finalStatus.status !== "completed") {
                 throw new Error(
                     finalStatus.last_error?.message ||
@@ -245,13 +253,29 @@ export class WatsonxExecutor implements OrchestrationExecutor {
     ): Promise<OrchestrateRunStart> {
         const iamToken = await this.getIamToken();
 
-        const userMessage = `Execute a sync operation for deal ${data.dealId}.
-Customer: ${data.customer}
-Amount: $${data.amount}
-Status: ${data.status || "open"}
-Close Date: ${data.closeDate || "TBD"}
+       const userMessage = `Sync the following deal information to Slack.
 
-Please sync this information to the following targets: ${targets.join(", ")}.`;
+        Deal ID: ${data.dealId}
+        Customer: ${data.customer}
+        Amount: $${data.amount}
+        Status: ${data.status || "open"}
+
+        Use the "send_a_message_in_slack" tool with:
+        - channel_id: "C09UD3XP3MZ"
+        - text: "New deal ${data.dealId} for ${data.customer}"
+        - blocks: a valid Slack Block Kit JSON array EXACTLY in this structure:
+
+        [
+        {
+            "type": "section",
+            "text": {
+            "type": "mrkdwn",
+            "text": ":owl: *New Deal Update*\\n• Customer: *${data.customer}*\\n• Amount: *$${data.amount}*\\n• Deal ID: ${data.dealId}\\n• Status: *${data.status || "open"}*"
+            }
+        }
+        ]
+
+        CRITICAL: The 'blocks' argument must be a valid JSON array, not a string.`;
 
         // CORRECT format for IBM Cloud API
         const body = {
@@ -324,6 +348,29 @@ Please sync this information to the following targets: ${targets.join(", ")}.`;
 
             await new Promise((r) => setTimeout(r, 500));
         }
+    }
+
+    /**
+     * GET /v1/orchestrate/threads/{thread_id}/messages - Get thread messages
+     */
+    private async getThreadMessages(threadId: string) {
+        const iamToken = await this.getIamToken();
+        const url = `${this.config.instanceUrl}/v1/orchestrate/threads/${threadId}/messages`;
+        
+        const res = await fetch(url, {
+            method: "GET",
+            headers: { 
+                Authorization: `Bearer ${iamToken}`,
+                Accept: "application/json"
+            }
+        });
+        
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`GET /threads/${threadId}/messages failed: ${res.status} - ${text}`);
+        }
+        
+        return await res.json();
     }
 
     /**
