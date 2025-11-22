@@ -47,10 +47,10 @@
         enabled: !!getEnv("WZ_API_KEY") && features.useRealOrchestrate,
     },
     google: {
-        serviceAccountJson: getEnv("GOOGLE_SA_JSON"),
-        sheetId: getEnv("GOOGLE_SHEET_ID"),
-        calendarId: getEnv("GOOGLE_CALENDAR_ID"),
-        enabled: !!getEnv("GOOGLE_SA_JSON"),
+    serviceAccountJson: getEnv("GOOGLE_SA_JSON"),
+    sheetId: getEnv("GOOGLE_SHEET_ID"),
+    calendarId: getEnv("GOOGLE_CALENDAR_ID"),
+    enabled: !!getEnv("GOOGLE_SA_JSON") && getBoolEnv("FEATURE_USE_REAL_GOOGLE", true),
     },
     email: {
         host: getEnv("SMTP_HOST", "smtp.gmail.com"),

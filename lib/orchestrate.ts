@@ -245,69 +245,154 @@ export class WatsonxExecutor implements OrchestrationExecutor {
     }
 
     /**
-     * POST /v1/orchestrate/runs - Start a run
-     */
-    private async startRun(
-        targets: SyncTarget[],
-        data: DealData
-    ): Promise<OrchestrateRunStart> {
-        const iamToken = await this.getIamToken();
+ * POST /v1/orchestrate/runs - Start a run
+ */
+private async startRun(
+    targets: SyncTarget[],
+    data: DealData
+): Promise<OrchestrateRunStart> {
+    const iamToken = await this.getIamToken();
+    const timestamp = new Date().toISOString();
+    
+    let userMessage = `Sync the following deal information:\n\nDeal ID: ${data.dealId}\nCustomer: ${data.customer}\nAmount: $${data.amount}\nStatus: ${data.status || "open"}\n\n`;
 
-       const userMessage = `Sync the following deal information to Slack.
+    // ========================================
+    // SLACK (directo - FUNCIONA ✅)
+    // ========================================
+    if (targets.includes("slack")) {
+        userMessage += `TASK 1: Sync to Slack
 
-        Deal ID: ${data.dealId}
-        Customer: ${data.customer}
-        Amount: $${data.amount}
-        Status: ${data.status || "open"}
+Use the "send_a_message_in_slack" tool with:
+- channel_id: "C09UD3XP3MZ"
+- text: "New deal ${data.dealId} for ${data.customer}"
+- blocks: a valid Slack Block Kit JSON array EXACTLY in this structure:
 
-        Use the "send_a_message_in_slack" tool with:
-        - channel_id: "C09UD3XP3MZ"
-        - text: "New deal ${data.dealId} for ${data.customer}"
-        - blocks: a valid Slack Block Kit JSON array EXACTLY in this structure:
-
-        [
-        {
-            "type": "section",
-            "text": {
-            "type": "mrkdwn",
-            "text": ":owl: *New Deal Update*\\n• Customer: *${data.customer}*\\n• Amount: *$${data.amount}*\\n• Deal ID: ${data.dealId}\\n• Status: *${data.status || "open"}*"
-            }
-        }
-        ]
-
-        CRITICAL: The 'blocks' argument must be a valid JSON array, not a string.`;
-
-        // CORRECT format for IBM Cloud API
-        const body = {
-            message: {  // ← SINGULAR, not "messages"
-                role: "user",
-                content: userMessage,
-            },
-            agent_id: this.config.agentId,
-        };
-
-        // CORRECT endpoint: {instanceUrl}/v1/orchestrate/runs (NO /api)
-        const url = `${this.config.instanceUrl}/v1/orchestrate/runs`;
-
-        console.log("🔄 Calling watsonx Orchestrate API:", url);
-
-        const res = await fetch(url, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${iamToken}`,
-                "Content-Type": "application/json",
-                Accept: "application/json",
-            },
-            body: JSON.stringify(body),
-        });
-
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`POST /runs failed: ${res.status} - ${text}`);
-        }
-
-        return (await res.json()) as OrchestrateRunStart;
+[
+{
+    "type": "section",
+    "text": {
+        "type": "mrkdwn",
+        "text": ":owl: *New Deal Update*\\n• Customer: *${data.customer}*\\n• Amount: *$${data.amount}*\\n• Deal ID: ${data.dealId}\\n• Status: *${data.status || "open"}*"
     }
+}
+]
+
+CRITICAL: The 'blocks' argument must be a valid JSON array, not a string.
+
+`;
+    }
+
+    // ========================================
+    // GMAIL (vía Echo Proxy)
+    // ========================================
+    if (targets.includes("email")) {
+        const customerEmail = (data as any).customerEmail || "customer@example.com";
+        
+        userMessage += `TASK 2: Send email via Echo Backend
+
+Use the "send_email_via_echo" tool to call Echo's backend API.
+
+Send a POST request with this EXACT JSON body:
+{
+  "dealId": "${data.dealId}",
+  "customer": "${data.customer}",
+  "amount": ${data.amount},
+  "status": "${data.status || "open"}",
+  "email": "${customerEmail}"
+}
+
+CRITICAL REQUIREMENTS:
+1. All fields are required
+2. "amount" must be a NUMBER (no quotes): ${data.amount}
+3. "dealId", "customer", "status", "email" must be STRINGS (with quotes)
+4. Do NOT add any extra fields
+
+`;
+    }
+
+    // ========================================
+    // CALENDAR (vía Echo Proxy)
+    // ========================================
+    if (targets.includes("calendar")) {
+        userMessage += `TASK 3: Create calendar event via Echo Backend
+
+Use the "create_calendar_event_via_echo" tool to call Echo's backend API.
+
+Send a POST request with this EXACT JSON body:
+{
+  "dealId": "${data.dealId}",
+  "customer": "${data.customer}",
+  "amount": ${data.amount},
+  "status": "${data.status || "open"}"
+}
+
+CRITICAL REQUIREMENTS:
+1. All fields are required
+2. "amount" must be a NUMBER (no quotes): ${data.amount}
+3. "dealId", "customer", "status" must be STRINGS (with quotes)
+4. Do NOT add any extra fields
+
+`;
+    }
+
+    // ========================================
+    // SHEETS (vía Echo Proxy)
+    // ========================================
+    if (targets.includes("sheets")) {
+        userMessage += `TASK 4: Sync to Google Sheets via Echo Backend
+
+        Use the "sync_deal_to_sheets" tool to call Echo's backend API.
+
+        Send a POST request with this EXACT JSON body:
+        {
+        "dealId": "${data.dealId}",
+        "customer": "${data.customer}",
+        "amount": ${data.amount},
+        "status": "${data.status || "open"}",
+        "timestamp": "${timestamp}"
+        }
+
+        CRITICAL REQUIREMENTS:
+        1. All fields are required
+        2. "amount" must be a NUMBER (no quotes): ${data.amount}
+        3. "dealId", "customer", "status", "timestamp" must be STRINGS (with quotes)
+        4. Do NOT add any extra fields
+
+        `;
+            }
+
+            userMessage += `Execute ALL tasks listed above.`;
+
+            // Request body for IBM Cloud API
+            const body = {
+                message: {
+                    role: "user",
+                    content: userMessage,
+                },
+                agent_id: this.config.agentId,
+            };
+
+            const url = `${this.config.instanceUrl}/v1/orchestrate/runs`;
+
+            console.log("🔄 Calling watsonx Orchestrate API:", url);
+
+            const res = await fetch(url, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${iamToken}`,
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                body: JSON.stringify(body),
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`POST /runs failed: ${res.status} - ${text}`);
+            }
+
+            return (await res.json()) as OrchestrateRunStart;
+        }
 
     /**
      * GET /v1/orchestrate/runs/{run_id} - Poll for completion
