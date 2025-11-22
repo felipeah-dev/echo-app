@@ -127,13 +127,21 @@ export async function appendDealToForecast(deal: {
 }): Promise<IntegrationResult> {
   const now = new Date();
 
-  // Timestamp en formato que Google Sheets entiende como fecha/hora
-  const timestamp = now.toISOString()
-    .replace("T", " ")  // 2025-11-22 22:08:26.727Z
-    .replace("Z", "");  // 2025-11-22 22:08:26.727
+  // Convertir a hora de CDMX y formatear YYYY-MM-DD HH:mm:ss
+  const mxTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Mexico_City" })
+  );
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+
+  const timestamp = `${mxTime.getFullYear()}-${pad(mxTime.getMonth() + 1)}-${pad(
+    mxTime.getDate()
+  )} ${pad(mxTime.getHours())}:${pad(mxTime.getMinutes())}:${pad(
+    mxTime.getSeconds()
+  )}`;
 
   const row = [
-    timestamp,          // Timestamp
+    timestamp,         // 👈 ahora es hora local CDMX
     deal.dealId,
     deal.customer,
     deal.amount,
