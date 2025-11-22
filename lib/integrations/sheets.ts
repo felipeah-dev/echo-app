@@ -74,7 +74,8 @@ export async function appendToSheet(
         const sheets = getSheetsClient();
         await sheets.spreadsheets.values.append({
           spreadsheetId,
-          range: "Sheet1", // usar la hoja completa
+          // Usamos las columnas A–E de la primera hoja
+          range: "A:E",
           valueInputOption: "USER_ENTERED",
           requestBody: {
             values: [values],
@@ -140,7 +141,7 @@ export async function appendDealToForecast(deal: {
  * Read data from Google Sheet
  */
 export async function readFromSheet(
-  range: string = "Sheet1",   // <- mismo truco: hoja completa
+  range: string = "A:E",
   sheetId?: string
 ): Promise<{ success: boolean; data?: unknown[][]; error?: string }> {
   try {
@@ -184,4 +185,3 @@ export async function readFromSheet(
     };
   }
 }
-
