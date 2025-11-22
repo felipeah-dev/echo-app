@@ -16,6 +16,7 @@ export const DealSchema = z.object({
   notes: z.string().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
+  customerEmail: z.string().email().optional(),
 });
 
 /**
