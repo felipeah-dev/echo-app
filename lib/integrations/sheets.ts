@@ -126,8 +126,14 @@ export async function appendDealToForecast(deal: {
   status?: string;
 }): Promise<IntegrationResult> {
   const now = new Date();
+
+  // Timestamp en formato que Google Sheets entiende como fecha/hora
+  const timestamp = now.toISOString()
+    .replace("T", " ")  // 2025-11-22 22:08:26.727Z
+    .replace("Z", "");  // 2025-11-22 22:08:26.727
+
   const row = [
-    now.toISOString(), // Timestamp
+    timestamp,          // Timestamp
     deal.dealId,
     deal.customer,
     deal.amount,
