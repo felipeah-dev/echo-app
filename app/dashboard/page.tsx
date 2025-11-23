@@ -145,9 +145,28 @@ export default function DashboardPage() {
             {alert && (
               <PredictiveAlert
                 alert={alert}
-                onAccept={(a) => {
-                  console.log("✅ Automation accepted", a);
-                  setAlert(null);
+                onAccept={async (a) => {
+                  try {
+                    await fetch("/api/automations", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        userId: "demo-user-1", // in real app: from auth/session
+                        type: "high_value_deal",
+                        minAmount:
+                          a.suggestedAutomation.minAmount ?? 100000,
+                        targets: a.suggestedAutomation.targets,
+                      }),
+                    });
+                    console.log("✅ Automation created", a);
+                  } catch (err) {
+                    console.error(
+                      "Failed to create automation",
+                      err
+                    );
+                  } finally {
+                    setAlert(null);
+                  }
                 }}
                 onDismiss={(id) => {
                   console.log("❌ Alert dismissed", id);
