@@ -9,12 +9,10 @@ import Image from "next/image";
 import {
   LayoutDashboard,
   Zap,
-  Activity,
   MessageSquare,
   Table,
   Mail,
   Calendar,
-  Settings,
   User,
 } from "lucide-react";
 
