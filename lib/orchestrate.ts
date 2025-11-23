@@ -1,3 +1,5 @@
+//lib/orchestrate.ts
+
 // =============================================================================
 // ECHO - Orchestration Layer (watsonx Orchestrate + Direct Execution)
 // FIXED VERSION - IBM Cloud API endpoints + Thread Messages Debug
@@ -285,8 +287,15 @@ CRITICAL: The 'blocks' argument must be a valid JSON array, not a string.
     // ========================================
     // GMAIL (vía Echo Proxy)
     // ========================================
-    if (targets.includes("email")) {
-        const customerEmail = (data as any).customerEmail || "customer@example.com";
+   if (targets.includes("email")) {
+    // ⭐ DEBUG: Log para verificar qué recibimos
+    console.log("🔍 DEBUG orchestrate.ts - data object:", JSON.stringify(data, null, 2));
+    console.log("🔍 DEBUG orchestrate.ts - data.customerEmail:", (data as any).customerEmail);
+    
+    const customerEmail = (data as any).customerEmail || "customer@example.com";
+    
+    console.log("🔍 DEBUG orchestrate.ts - customerEmail final:", customerEmail);
+    // ⭐ FIN DEBUG
         
         userMessage += `TASK 2: Send email via Echo Backend
 

@@ -1,3 +1,5 @@
+//lib/integrations/calendar.ts
+
 // ==============================================
 // ECHO - Google Calendar Integration
 // ==============================================

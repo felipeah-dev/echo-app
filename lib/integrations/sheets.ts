@@ -1,3 +1,5 @@
+//lib/integrations/sheets.ts
+
 // ==============================================
 // ECHO - Google Sheets Integration
 // ==============================================
@@ -124,15 +126,16 @@ export async function appendDealToForecast(deal: {
   amount: number;
   status?: string;
 }): Promise<IntegrationResult> {
-  const now = new Date();
-  const row = [
-    now.toISOString(), // Timestamp
-    deal.dealId,
-    deal.customer,
-    deal.amount,
-    deal.status || "open",
-  ];
+ const now = new Date();
+const timestamp = now.toLocaleString("sv-SE", { timeZone: "America/Mazatlan" }); // 2025-11-22 19:40:56
 
+const row = [
+  timestamp, // En vez de toISOString()
+  deal.dealId,
+  deal.customer,
+  deal.amount,
+  deal.status || "open",
+];
   return appendToSheet(row);
 }
 

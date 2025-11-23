@@ -1,3 +1,5 @@
+//lib/integrations/gmail.ts
+
 // ==============================================
 // ECHO - Gmail Integration (Nodemailer)
 // ==============================================
