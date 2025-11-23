@@ -1,3 +1,4 @@
+//lib/validation.ts
 // ==============================================
 // ECHO - Validation Schemas (Zod)
 // ==============================================
@@ -12,6 +13,7 @@ export const DealSchema = z.object({
   customer: z.string().min(1, "Customer name is required"),
   amount: z.number().positive("Amount must be positive"),
   status: z.enum(["open", "closed", "pending"]).optional(),
+  customerEmail: z.string().email().optional(),  // ← ⭐ AGREGADO ⭐
   assignedTo: z.string().optional(),
   notes: z.string().optional(),
   createdAt: z.coerce.date().optional(),
@@ -50,7 +52,6 @@ export function safeParse<T>(
     return { success: true, data: result.data };
   }
   
-  // FIX: Usar 'issues' en vez de 'errors' y tipar correctamente
   return {
     success: false,
     error: result.error.issues

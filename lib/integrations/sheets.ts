@@ -1,3 +1,5 @@
+//lib/integrations/sheets.ts
+
 // ==============================================
 // ECHO - Google Sheets Integration
 // ==============================================
@@ -148,6 +150,13 @@ export async function appendDealToForecast(deal: {
     deal.status || "open",
   ];
 
+const row = [
+  timestamp, // En vez de toISOString()
+  deal.dealId,
+  deal.customer,
+  deal.amount,
+  deal.status || "open",
+];
   return appendToSheet(row);
 }
 

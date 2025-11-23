@@ -53,40 +53,53 @@ export function AppSidebar() {
 
       <SidebarContent>
         {/* Main Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/dashboard">
-                    <LayoutDashboard className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+        {/* Main Navigation */}
+<SidebarGroup>
+  <SidebarGroupLabel>Main</SidebarGroupLabel>
+  <SidebarGroupContent>
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild>
+          <Link href="/dashboard">
+            <LayoutDashboard className="h-4 w-4" />
+            <span>Dashboard</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/dashboard/automations">
-                    <Zap className="h-4 w-4" />
-                    <span>Automations</span>
-                    <Badge className="ml-auto bg-purple-500">12</Badge>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild>
+          <Link href="/manual-sync">
+            <Zap className="h-4 w-4" />
+            <span>Manual Sync</span>
+            <Badge className="ml-auto bg-gradient-to-r from-purple-500 to-pink-500 border-0">
+              New
+            </Badge>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/dashboard/activity">
-                    <Activity className="h-4 w-4" />
-                    <span>Activity Log</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild>
+          <Link href="/dashboard/automations">
+            <Zap className="h-4 w-4" />
+            <span>Automations</span>
+            <Badge className="ml-auto bg-purple-500">12</Badge>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild>
+          <Link href="/dashboard/activity">
+            <Activity className="h-4 w-4" />
+            <span>Activity Log</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  </SidebarGroupContent>
+</SidebarGroup>
 
         {/* Integrations */}
         <SidebarGroup>
