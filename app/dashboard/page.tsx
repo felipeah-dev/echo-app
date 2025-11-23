@@ -6,10 +6,8 @@
 
 import { useEffect, useState } from "react";
 import { LiveCounter } from "@/components/custom/LiveCounter";
-import { PredictiveAlert } from "@/components/predictive-alert";
-import { patternDetector } from "@/lib/patterns";
-import type { PatternAlert } from "@/lib/patternDetection/types";
-import type { SyncResponse } from "@/lib/types";
+import type { PatternAlert } from "@/lib/patternDetection/types"; // <- ya no se usa, puedes borrarlo si quieres
+import type { SyncResponse } from "@/lib/types"; // <- ya no se usa, puedes borrarlo si quieres
 
 import {
   Card,
@@ -67,15 +65,6 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ---------- Predictive Alerts / sync demo ----------
-  const [alert, setAlert] = useState<PatternAlert | null>(null);
-  const [syncLoading, setSyncLoading] = useState(false);
-  const [lastSync, setLastSync] = useState<{
-    amount: number;
-    source: string;
-    targets: string[];
-  } | null>(null);
-
   // ---------- Fetch metrics from /api/metrics ----------
   const fetchMetrics = async () => {
     try {
@@ -105,96 +94,6 @@ export default function DashboardPage() {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchMetrics();
-  };
-
-  // Mock automation rules (for the right column card)
-  const automationRules = [
-    {
-      id: "1",
-      name: "CRM → All Platforms",
-      pattern: ["CRM", "Slack", "Sheets", "Email", "Calendar"],
-      frequency: 85,
-      enabled: true,
-      timesExecuted: metrics?.deals.total || 0,
-    },
-    {
-      id: "2",
-      name: "High-Value Deal Alert",
-      pattern: ["CRM", "Slack", "Email"],
-      frequency: 75,
-      enabled: true,
-      timesExecuted: Math.floor((metrics?.deals.total || 0) * 0.4),
-    },
-    {
-      id: "3",
-      name: "Follow-up Scheduler",
-      pattern: ["CRM", "Calendar", "Email"],
-      frequency: 65,
-      enabled: true,
-      timesExecuted: Math.floor((metrics?.deals.total || 0) * 0.6),
-    },
-  ];
-
-  // ---------- Demo sync that feeds the pattern detector ----------
-  const handleRunDemoSync = async () => {
-    try {
-      setSyncLoading(true);
-
-      const res = await fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source: "crm",
-          targets: ["slack", "sheets"],
-          data: {
-            dealId: "demo-deal-123",
-            customer: "Acme Corp",
-            amount: 120000,
-            status: "open",
-            assignedTo: "alice@echo.app",
-            notes: "Demo sync triggered from dashboard",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            customerEmail: "contact@acme.com",
-          },
-          userId: "demo-user-1",
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      if (!res.ok) {
-        console.error("Sync failed", await res.text());
-        return;
-      }
-
-      const dataRes = (await res.json()) as SyncResponse;
-
-      const amount = dataRes.amount ?? 120000;
-      const source = dataRes.source ?? "crm";
-      const targets = dataRes.synced ?? [];
-
-      setLastSync({ amount, source, targets });
-
-      // Feed pattern detector
-      patternDetector.recordAction({
-        source,
-        targets,
-        amount,
-        timestamp: new Date().toISOString(),
-      });
-
-      const maybeAlert = patternDetector.detectPattern();
-      if (maybeAlert) {
-        setAlert(maybeAlert);
-      }
-
-      // Optionally refresh metrics after a successful sync
-      fetchMetrics();
-    } catch (err) {
-      console.error("Error calling /api/sync", err);
-    } finally {
-      setSyncLoading(false);
-    }
   };
 
   return (
@@ -257,37 +156,6 @@ export default function DashboardPage() {
 
           {/* Main Content Area */}
           <main className="flex-1 p-6 space-y-6">
-            {/* 🔮 Predictive Alert from patternDetector */}
-            {alert && (
-              <PredictiveAlert
-                alert={alert}
-                onAccept={async (a) => {
-                  try {
-                    await fetch("/api/automations", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        userId: "demo-user-1", // in real app: from auth/session
-                        type: "high_value_deal",
-                        minAmount:
-                          a.suggestedAutomation.minAmount ?? 100000,
-                        targets: a.suggestedAutomation.targets,
-                      }),
-                    });
-                    console.log("✅ Automation created", a);
-                  } catch (err) {
-                    console.error("Failed to create automation", err);
-                  } finally {
-                    setAlert(null);
-                  }
-                }}
-                onDismiss={(id) => {
-                  console.log("❌ Alert dismissed", id);
-                  setAlert(null);
-                }}
-              />
-            )}
-
             {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center py-12">
@@ -321,39 +189,7 @@ export default function DashboardPage() {
             {/* Data Loaded */}
             {metrics && !loading && (
               <>
-                {/* Demo sync card (feeds predictive alerts) */}
-                <Card className="border-purple-500/20">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">
-                          Run sync demo with ECHO
-                        </CardTitle>
-                        <CardDescription>
-                          Trigger a real sync and let ECHO detect patterns
-                          automatically.
-                        </CardDescription>
-                      </div>
-
-                      <Button
-                        onClick={handleRunDemoSync}
-                        disabled={syncLoading}
-                        className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border-0 shadow-sm hover:brightness-110 hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {syncLoading ? "Syncing…" : "Run demo sync"}
-                      </Button>
-                    </div>
-                    {lastSync && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Last sync: ${lastSync.amount.toLocaleString()} ·{" "}
-                        {lastSync.targets.join(", ") || "no targets"} from{" "}
-                        {lastSync.source}
-                      </p>
-                    )}
-                  </CardHeader>
-                </Card>
-
-                {/* Hero Stats */}
+                {/* Hero Stats (todo real de /api/metrics) */}
                 <div className="rounded-xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-8">
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard
@@ -371,7 +207,7 @@ export default function DashboardPage() {
                     <StatCard
                       label="Active Automations"
                       value={metrics.overview.automations.value}
-                      change={`+${metrics.overview.automations.change} new`}
+                      change={metrics.overview.automations.change}
                       isCount
                     />
                     <StatCard
@@ -451,7 +287,7 @@ export default function DashboardPage() {
 
                 {/* Two Column Layout */}
                 <div className="grid gap-6 lg:grid-cols-2">
-                  {/* Recent Activity */}
+                  {/* Recent Activity (real) */}
                   <Card className="border-purple-500/20">
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -536,86 +372,97 @@ export default function DashboardPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Active Automations */}
+                  {/* Deals Overview (solo métricas reales) */}
                   <Card className="border-indigo-500/20">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div>
                           <CardTitle className="text-xl">
-                            Active Automations
+                            Deals Overview
                           </CardTitle>
                           <CardDescription>
-                            Patterns running automatically
+                            Breakdown of your current pipeline
                           </CardDescription>
                         </div>
                         <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 border-0">
-                          {automationRules.length} Active
+                          Real Metrics
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {automationRules.map((rule) => (
-                          <div
-                            key={rule.id}
-                            className="p-4 rounded-lg border hover:border-purple-500/50 transition-all hover:shadow-md"
-                          >
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xl">🤖</span>
-                                <span className="font-medium">
-                                  {rule.name}
-                                </span>
-                              </div>
-                              <Badge
-                                className={
-                                  rule.enabled
-                                    ? "bg-green-500"
-                                    : "bg-gray-500"
-                                }
-                              >
-                                {rule.enabled ? "Active" : "Paused"}
-                              </Badge>
-                            </div>
-
-                            <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-                              {rule.pattern.map((step, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center gap-1.5"
-                                >
-                                  <span className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-medium rounded-full">
-                                    {step}
-                                  </span>
-                                  {idx < rule.pattern.length - 1 && (
-                                    <span className="text-purple-500">
-                                      →
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-full max-w-[100px] h-1.5 bg-muted rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
-                                    style={{
-                                      width: `${rule.frequency}%`,
-                                    }}
-                                  />
-                                </div>
-                                <span className="text-xs font-medium">
-                                  {rule.frequency}%
-                                </span>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {rule.timesExecuted}x executed
-                              </span>
-                            </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-3 rounded-lg bg-muted/60">
+                            <p className="text-xs text-muted-foreground">
+                              Total Deals
+                            </p>
+                            <p className="text-2xl font-bold">
+                              {metrics.deals.total}
+                            </p>
                           </div>
-                        ))}
+                          <div className="p-3 rounded-lg bg-muted/60">
+                            <p className="text-xs text-muted-foreground">
+                              Closed
+                            </p>
+                            <p className="text-2xl font-bold text-green-600">
+                              {metrics.deals.closed}
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-muted/60">
+                            <p className="text-xs text-muted-foreground">
+                              Open
+                            </p>
+                            <p className="text-2xl font-bold text-blue-600">
+                              {metrics.deals.open}
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-muted/60">
+                            <p className="text-xs text-muted-foreground">
+                              Pending
+                            </p>
+                            <p className="text-2xl font-bold text-amber-600">
+                              {metrics.deals.pending}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Distribution bar (real, basada en open/closed/pending) */}
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Pipeline Distribution
+                          </p>
+                          <div className="h-3 bg-muted rounded-full overflow-hidden flex">
+                            {["closed", "open", "pending"].map((status) => {
+                              const total =
+                                metrics.deals.total || 1;
+                              const count =
+                                metrics.deals[
+                                  status as "closed" | "open" | "pending"
+                                ];
+                              const pct = (count / total) * 100;
+
+                              const color =
+                                status === "closed"
+                                  ? "bg-green-500"
+                                  : status === "open"
+                                  ? "bg-blue-500"
+                                  : "bg-amber-500";
+
+                              return (
+                                <div
+                                  key={status}
+                                  className={color}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>Closed</span>
+                            <span>Open</span>
+                            <span>Pending</span>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

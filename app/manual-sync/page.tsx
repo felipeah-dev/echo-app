@@ -8,13 +8,26 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, CheckCircle2, XCircle, Clock, Zap } from "lucide-react";
 import type { SyncTarget, SyncResponse } from "@/lib/types";
+import { useActionTracker } from "@/hooks/usePatternDetection";
 
 export default function ManualSyncPage() {
   // Form state
@@ -25,12 +38,20 @@ export default function ManualSyncPage() {
   const [customerEmail, setCustomerEmail] = useState("");
 
   // Targets state
-  const [targets, setTargets] = useState<SyncTarget[]>(["slack", "sheets", "email", "calendar"]);
+  const [targets, setTargets] = useState<SyncTarget[]>([
+    "slack",
+    "sheets",
+    "email",
+    "calendar",
+  ]);
 
   // UI state
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SyncResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Pattern detection tracker (fase 2)
+  const trackAction = useActionTracker();
 
   // Toggle target
   const toggleTarget = (target: SyncTarget) => {
@@ -47,13 +68,15 @@ export default function ManualSyncPage() {
     setError(null);
 
     try {
+      const numericAmount = parseFloat(amount);
+
       const payload = {
         source: "manual" as const,
         targets,
         data: {
           dealId,
           customer,
-          amount: parseFloat(amount),
+          amount: numericAmount,
           status,
           customerEmail: customerEmail || undefined,
         },
@@ -81,6 +104,22 @@ export default function ManualSyncPage() {
       }
 
       setResult(data);
+
+      // 🔍 Registrar acción para detección de patrones (fase 2)
+         trackAction({
+        tool: "sync",
+        type: "manual",
+        context: {
+          entityType: "deal",
+          source: "manual",
+          targets,
+          amount: numericAmount,
+          dealId,
+          status,
+          customer,
+          customerEmail: customerEmail || undefined,
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -173,7 +212,6 @@ export default function ManualSyncPage() {
                     value={status}
                     onValueChange={(v: "open" | "closed" | "pending") => setStatus(v)}
                   >
-
                     <SelectTrigger id="status">
                       <SelectValue />
                     </SelectTrigger>
@@ -217,7 +255,9 @@ export default function ManualSyncPage() {
                         <Checkbox
                           id={target.id}
                           checked={targets.includes(target.id as SyncTarget)}
-                          onCheckedChange={() => toggleTarget(target.id as SyncTarget)}
+                          onCheckedChange={() =>
+                            toggleTarget(target.id as SyncTarget)
+                          }
                         />
                         <Label
                           htmlFor={target.id}
@@ -230,7 +270,9 @@ export default function ManualSyncPage() {
                     ))}
                   </div>
                   {targets.length === 0 && (
-                    <p className="text-sm text-red-500">Select at least one target</p>
+                    <p className="text-sm text-red-500">
+                      Select at least one target
+                    </p>
                   )}
                 </div>
 
@@ -302,7 +344,9 @@ export default function ManualSyncPage() {
                   {/* Synced Targets */}
                   {result.synced.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-700">Synced Successfully:</p>
+                      <p className="text-sm font-medium text-gray-700">
+                        Synced Successfully:
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {result.synced.map((target) => (
                           <Badge
@@ -320,13 +364,12 @@ export default function ManualSyncPage() {
                   {/* Failed Targets */}
                   {result.failed.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-700">Failed:</p>
+                      <p className="text-sm font-medium text-gray-700">
+                        Failed:
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {result.failed.map((target) => (
-                          <Badge
-                            key={target}
-                            variant="destructive"
-                          >
+                          <Badge key={target} variant="destructive">
                             <XCircle className="mr-1 h-3 w-3" />
                             {target}
                           </Badge>
@@ -347,17 +390,23 @@ export default function ManualSyncPage() {
                       </div>
                     </div>
                     <p className="text-sm text-white/80 mt-1">
-                      vs. manual process (~{Math.floor((result.timeSavedSec + 210) / 60)} min)
+                      vs. manual process (~
+                      {Math.floor((result.timeSavedSec + 210) / 60)} min)
                     </p>
                   </div>
 
                   {/* Decision Log */}
                   {result.decisionLog && result.decisionLog.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-gray-700">Decision Log:</p>
+                      <p className="text-sm font-medium text-gray-700">
+                        Decision Log:
+                      </p>
                       <div className="bg-muted rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto">
                         {result.decisionLog.map((log, idx) => (
-                          <p key={idx} className="text-xs font-mono text-gray-700">
+                          <p
+                            key={idx}
+                            className="text-xs font-mono text-gray-700"
+                          >
                             {log}
                           </p>
                         ))}
@@ -372,8 +421,8 @@ export default function ManualSyncPage() {
                 <div className="text-center py-12 text-gray-400">
                   <Zap className="h-12 w-12 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">
-                  Fill the form and click &quot;Sync Now&quot;
-                </p>
+                    Fill the form and click &quot;Sync Now&quot;
+                  </p>
                 </div>
               )}
 
@@ -393,7 +442,9 @@ export default function ManualSyncPage() {
           <CardContent className="pt-6">
             <div className="grid sm:grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-purple-600">3.5 min</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  3.5 min
+                </div>
                 <div className="text-sm text-gray-600">Avg sync time</div>
               </div>
               <div>

@@ -13,13 +13,19 @@ import {
 import { Button } from '@/components/ui/button';
 import type { UserAction } from '@/lib/patternDetection/types';
 
+type ActionContext = {
+  entityType?: string;
+};
+
 function actionLabel(action: UserAction): string {
+  const ctx = (action.context || {}) as ActionContext;
   const base = `${action.tool.toUpperCase()} – ${action.type}`;
-  if (action.context?.entityType) {
-    return `${base} (${action.context.entityType})`;
+  if (ctx.entityType) {
+    return `${base} (${ctx.entityType})`;
   }
   return base;
 }
+
 
 export const PatternSuggestionModal: React.FC = () => {
   const { suggestion, markSuggestionHandled } = usePatternDetection();

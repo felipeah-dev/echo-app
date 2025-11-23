@@ -9,52 +9,59 @@ export async function GET() {
   try {
     console.log("📊 Fetching real metrics from Google Sheets...");
 
-    // Read all data
+    // Lee todas las columnas A:E: [timestamp, dealId, customer, amount, status]
     const result = await readFromSheet("A:E");
-    
+
     if (!result.success || !result.data) {
       throw new Error(result.error || "Failed to read from sheet");
     }
 
     const rows = result.data;
 
-    // Skip header row if exists
-    const dataRows = rows.length > 0 && typeof rows[0][0] === "string" && rows[0][0].toLowerCase().includes("timestamp")
-      ? rows.slice(1)
-      : rows;
+    // Saltar cabecera si la primera celda contiene "timestamp"
+    const dataRows =
+      rows.length > 0 &&
+      typeof rows[0][0] === "string" &&
+      rows[0][0].toLowerCase().includes("timestamp")
+        ? rows.slice(1)
+        : rows;
 
     console.log(`✅ Read ${dataRows.length} rows from Sheets`);
 
-    // Calculate metrics
+    // --------- Acumuladores de métricas ----------
+
     let totalDeals = 0;
     let totalAmount = 0;
     let openDeals = 0;
     let closedDeals = 0;
     let pendingDeals = 0;
+
     let lastDealTimestamp: Date | null = null;
     let lastDealCustomer: string | null = null;
     let lastDealId: string | null = null;
     let lastDealAmount: number | null = null;
 
-    const recentActivity: Array<{
+    // Guardamos la actividad con el timestamp real para ordenar bien
+    const activityRaw: Array<{
       id: string;
       dealId: string;
       customer: string;
       amount: number;
       status: string;
-      time: string;
-      type: string;
+      timestamp: Date;
     }> = [];
+
+    // --------- Procesar filas ----------
 
     for (const row of dataRows) {
       if (row.length < 4) continue;
 
       const [timestampStr, dealId, customer, amountStr, status] = row;
 
-      // ⭐ FIX 1: Limpiar amount (remover $, comas) ⭐
+      // Limpiar amount (remover $, comas)
       const cleanAmount = amountStr?.toString().replace(/[$,]/g, "") || "0";
       const amount = parseFloat(cleanAmount);
-      
+
       if (isNaN(amount) || amount <= 0) {
         continue;
       }
@@ -62,31 +69,33 @@ export async function GET() {
       totalDeals++;
       totalAmount += amount;
 
-      // Count by status
+      // Contar por status
       const statusLower = (status?.toString() || "open").toLowerCase();
       if (statusLower === "closed") closedDeals++;
       else if (statusLower === "pending") pendingDeals++;
       else openDeals++;
 
-      // ⭐ FIX 2: Parsear timestamp formato DD/MM/YYYY HH:MM:SS ⭐
+      // Parsear timestamp (DD/MM/YYYY HH:mm:ss o ISO)
       try {
-        let timestampISO = "";
         const tsStr = timestampStr?.toString() || "";
-        
-        // Intentar parsear formato: "22/11/2025 22:06:36"
-        const match = tsStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
-        
+        let timestampISO = "";
+
+        const match = tsStr.match(
+          /(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/
+        );
+
         if (match) {
           const [, day, month, year, hour, min, sec] = match;
           timestampISO = `${year}-${month}-${day}T${hour}:${min}:${sec}`;
         } else {
-          // Si no machea, intentar parsearlo directamente
+          // Si ya viene en ISO, esto lo deja casi igual
           timestampISO = tsStr.replace(" ", "T");
         }
-        
+
         const timestamp = new Date(timestampISO);
 
         if (!isNaN(timestamp.getTime())) {
+          // Último deal
           if (!lastDealTimestamp || timestamp > lastDealTimestamp) {
             lastDealTimestamp = timestamp;
             lastDealCustomer = customer?.toString() || "Unknown";
@@ -94,15 +103,14 @@ export async function GET() {
             lastDealAmount = amount;
           }
 
-          // Add to recent activity
-          recentActivity.push({
+          // Guardar actividad cruda con timestamp real
+          activityRaw.push({
             id: `${dealId}-${timestamp.getTime()}`,
             dealId: dealId?.toString() || "Unknown",
             customer: customer?.toString() || "Unknown",
             amount,
             status: statusLower,
-            time: formatRelativeTime(timestamp),
-            type: "sync",
+            timestamp,
           });
         }
       } catch {
@@ -110,31 +118,37 @@ export async function GET() {
       }
     }
 
-    console.log(`📊 Processed: totalDeals=${totalDeals}, recentActivity=${recentActivity.length}`);
+    console.log(
+      `📊 Processed: totalDeals=${totalDeals}, rawActivity=${activityRaw.length}`
+    );
 
-    // Sort recent activity by most recent first and take top 10
-    recentActivity.sort((a, b) => {
-      const timeA = parseRelativeTime(a.time);
-      const timeB = parseRelativeTime(b.time);
-      return timeB - timeA;
-    });
+    // --------- Ordenar por timestamp real y tomar top 10 ----------
 
-    const topActivity = recentActivity.slice(0, 10);
+    activityRaw.sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+    );
 
-    // Calculate derived metrics
-    const avgDealSize = totalDeals > 0 ? Math.round(totalAmount / totalDeals) : 0;
-    const successRate = totalDeals > 0 ? Math.round((closedDeals / totalDeals) * 100) : 100;
+    const topActivity = activityRaw.slice(0, 10);
 
-    // Time saved calculation: 210 sec per sync
+    // --------- Métricas derivadas ----------
+
+    const avgDealSize =
+      totalDeals > 0 ? Math.round(totalAmount / totalDeals) : 0;
+    const successRate =
+      totalDeals > 0 ? Math.round((closedDeals / totalDeals) * 100) : 100;
+
+    // 210 sec por sync
     const totalTimeSavedSec = totalDeals * 210;
     const timeSavedHours = Math.round(totalTimeSavedSec / 3600);
 
     const activeAutomations = 4;
 
-    // Response
+    // --------- Construir respuesta ----------
+
     const metrics = {
       overview: {
         syncedToday: {
+          // de momento igual al total (puedes refinar luego por fecha)
           value: totalDeals,
           change: 12,
         },
@@ -165,14 +179,21 @@ export async function GET() {
             customer: lastDealCustomer,
             amount: lastDealAmount,
             timestamp: lastDealTimestamp?.toISOString(),
-            timeAgo: lastDealTimestamp ? formatRelativeTime(lastDealTimestamp) : "Unknown",
+            timeAgo: lastDealTimestamp
+              ? formatRelativeTime(lastDealTimestamp)
+              : "Unknown",
           }
         : null,
       recentActivity: topActivity.map((activity) => ({
-        ...activity,
-        description: `Synced deal ${activity.dealId} for ${activity.customer} ($${activity.amount.toLocaleString()})`,
+        id: activity.id,
+        dealId: activity.dealId,
+        customer: activity.customer,
+        amount: activity.amount,
+        // el badge de la UI usa "success" fijo
         status: "success" as const,
+        time: formatRelativeTime(activity.timestamp),
         timeSaved: 210,
+        description: `Synced deal ${activity.dealId} for ${activity.customer} ($${activity.amount.toLocaleString()})`,
       })),
     };
 
@@ -184,7 +205,8 @@ export async function GET() {
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     console.error("❌ Metrics API failed:", errorMessage);
 
     return NextResponse.json(
@@ -212,6 +234,8 @@ export async function GET() {
   }
 }
 
+// ========= Helpers =========
+
 function formatRelativeTime(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -222,23 +246,7 @@ function formatRelativeTime(date: Date): string {
 
   if (diffSec < 60) return `${diffSec} sec ago`;
   if (diffMin < 60) return `${diffMin} min ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
   return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-}
-
-function parseRelativeTime(timeStr: string): number {
-  const match = timeStr.match(/(\d+)\s+(sec|min|hour|day)/);
-  if (!match) return 0;
-
-  const value = parseInt(match[1]);
-  const unit = match[2];
-
-  const multipliers: Record<string, number> = {
-    sec: 1000,
-    min: 60 * 1000,
-    hour: 60 * 60 * 1000,
-    day: 24 * 60 * 60 * 1000,
-  };
-
-  return Date.now() - value * (multipliers[unit] || 0);
 }
