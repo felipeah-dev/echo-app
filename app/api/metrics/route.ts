@@ -6,6 +6,9 @@
 import { NextResponse } from "next/server";
 import { readFromSheet } from "@/lib/integrations/sheets";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type RecentActivityItem = {
   id: string;
   dealId: string;
