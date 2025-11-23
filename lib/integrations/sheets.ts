@@ -142,13 +142,6 @@ export async function appendDealToForecast(deal: {
     mxTime.getMinutes()
   )}:${pad(mxTime.getSeconds())}`;
 
-  const row = [
-    timestamp, // 👈 ahora es hora local Mazatlán/Nayarit
-    deal.dealId,
-    deal.customer,
-    deal.amount,
-    deal.status || "open",
-  ];
 
 const row = [
   timestamp, // En vez de toISOString()
