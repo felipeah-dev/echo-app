@@ -13,12 +13,11 @@ export const DealSchema = z.object({
   customer: z.string().min(1, "Customer name is required"),
   amount: z.number().positive("Amount must be positive"),
   status: z.enum(["open", "closed", "pending"]).optional(),
-  customerEmail: z.string().email().optional(),  // ← ⭐ AGREGADO ⭐
+  customerEmail: z.string().email().optional(), 
   assignedTo: z.string().optional(),
   notes: z.string().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
-  customerEmail: z.string().email().optional(),
 });
 
 /**
