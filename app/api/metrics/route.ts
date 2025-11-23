@@ -2,10 +2,10 @@
 // ECHO - Metrics API (Real Data from Sheets)
 // ==============================================
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { readFromSheet } from "@/lib/integrations/sheets";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log("📊 Fetching real metrics from Google Sheets...");
 
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
             type: "sync",
           });
         }
-      } catch (e) {
+      } catch {
         console.warn("⚠️ Failed to parse timestamp:", timestampStr);
       }
     }

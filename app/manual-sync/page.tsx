@@ -169,7 +169,11 @@ export default function ManualSyncPage() {
                 {/* Status */}
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select value={status} onValueChange={(v: any) => setStatus(v)}>
+                  <Select
+                    value={status}
+                    onValueChange={(v: "open" | "closed" | "pending") => setStatus(v)}
+                  >
+
                     <SelectTrigger id="status">
                       <SelectValue />
                     </SelectTrigger>
@@ -367,7 +371,9 @@ export default function ManualSyncPage() {
               {!result && !error && !loading && (
                 <div className="text-center py-12 text-gray-400">
                   <Zap className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Fill the form and click "Sync Now"</p>
+                  <p className="text-sm">
+                  Fill the form and click &quot;Sync Now&quot;
+                </p>
                 </div>
               )}
 

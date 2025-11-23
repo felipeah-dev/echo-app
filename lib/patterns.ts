@@ -1,17 +1,16 @@
 // lib/patterns.ts
 
-import { PatternDetectionEngine } from './patternDetection/engine';
+import { LegacyPatternDetectionEngine } from './patternDetection/engine';
 import type { Action, PatternAlert } from './patternDetection/types';
 
-const engine = new PatternDetectionEngine();
+const legacyEngine = new LegacyPatternDetectionEngine();
 
 export const patternDetector = {
-  recordAction(action: Action) {
-    engine.recordAction(action);
+  recordAction(action: Action): void {
+    legacyEngine.recordAction(action);
   },
 
   detectPattern(): PatternAlert | null {
-    return engine.detectPattern();
+    return legacyEngine.detectPattern();
   },
-
 };
