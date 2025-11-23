@@ -1,3 +1,4 @@
+// app/api/metrics/route.ts
 // ==============================================
 // ECHO - Metrics API (Real Data from Sheets)
 // ==============================================
@@ -13,7 +14,7 @@ type RecentActivityItem = {
   status: string;
   time: string;
   type: string;
-  // 🔥 usamos esto solo para ordenar, no se envía al front
+  // solo para ordenar, no se envía al front
   timestampMs: number;
 };
 
@@ -21,7 +22,6 @@ export async function GET() {
   try {
     console.log("📊 Fetching real metrics from Google Sheets...");
 
-    // Read all data
     const result = await readFromSheet("A:E");
 
     if (!result.success || !result.data) {
@@ -30,7 +30,7 @@ export async function GET() {
 
     const rows = result.data;
 
-    // Skip header row if exists
+    // Saltar cabecera si la hay
     const dataRows =
       rows.length > 0 &&
       typeof rows[0][0] === "string" &&
@@ -40,7 +40,6 @@ export async function GET() {
 
     console.log(`✅ Read ${dataRows.length} rows from Sheets`);
 
-    // Calculate metrics
     let totalDeals = 0;
     let totalAmount = 0;
     let openDeals = 0;
@@ -58,7 +57,7 @@ export async function GET() {
 
       const [timestampStr, dealId, customer, amountStr, status] = row;
 
-      // ⭐ Limpiar amount (remover $, comas)
+      // Limpiar amount (remover $, comas)
       const cleanAmount = amountStr?.toString().replace(/[$,]/g, "") || "0";
       const amount = parseFloat(cleanAmount);
 
@@ -69,83 +68,62 @@ export async function GET() {
       totalDeals++;
       totalAmount += amount;
 
-      // Count by status
       const statusLower = (status?.toString() || "open").toLowerCase();
       if (statusLower === "closed") closedDeals++;
       else if (statusLower === "pending") pendingDeals++;
       else openDeals++;
 
-      // ⭐ Parsear timestamp (soporta DD/MM/YYYY HH:MM:SS o ISO)
-      try {
-        let timestampISO = "";
-        const tsStr = timestampStr?.toString() || "";
+      // 👉 Parseo robusto del timestamp
+      const tsStr = timestampStr?.toString() || "";
+      let timestamp = parseTimestamp(tsStr);
 
-        // Intentar parsear formato: "22/11/2025 22:06:36"
-        const match = tsStr.match(
-          /(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/,
-        );
-
-        if (match) {
-          const [, day, month, year, hour, min, sec] = match;
-          timestampISO = `${year}-${month}-${day}T${hour}:${min}:${sec}`;
-        } else {
-          // Si no machea, intentar usarlo tal cual (ISO, etc.)
-          timestampISO = tsStr.replace(" ", "T");
-        }
-
-        const timestamp = new Date(timestampISO);
-
-        if (!isNaN(timestamp.getTime())) {
-          const tsMs = timestamp.getTime();
-
-          // Track "last deal"
-          if (!lastDealTimestamp || timestamp > lastDealTimestamp) {
-            lastDealTimestamp = timestamp;
-            lastDealCustomer = customer?.toString() || "Unknown";
-            lastDealId = dealId?.toString() || "Unknown";
-            lastDealAmount = amount;
-          }
-
-          // Agregar a actividad reciente
-          recentActivity.push({
-            id: `${dealId}-${tsMs}`,
-            dealId: dealId?.toString() || "Unknown",
-            customer: customer?.toString() || "Unknown",
-            amount,
-            status: statusLower,
-            time: formatRelativeTime(timestamp),
-            type: "sync",
-            timestampMs: tsMs,
-          });
-        }
-      } catch {
-        console.warn("⚠️ Failed to parse timestamp:", timestampStr);
+      // Si aun así falla, usamos "ahora" para que la fila igualmente aparezca
+      if (!timestamp) {
+        console.warn("⚠️ Failed to parse timestamp, using now():", tsStr);
+        timestamp = new Date();
       }
+
+      const tsMs = timestamp.getTime();
+
+      // Último deal
+      if (!lastDealTimestamp || timestamp > lastDealTimestamp) {
+        lastDealTimestamp = timestamp;
+        lastDealCustomer = customer?.toString() || "Unknown";
+        lastDealId = dealId?.toString() || "Unknown";
+        lastDealAmount = amount;
+      }
+
+      recentActivity.push({
+        id: `${dealId}-${tsMs}`,
+        dealId: dealId?.toString() || "Unknown",
+        customer: customer?.toString() || "Unknown",
+        amount,
+        status: statusLower,
+        time: formatRelativeTime(timestamp),
+        type: "sync",
+        timestampMs: tsMs,
+      });
     }
 
     console.log(
       `📊 Processed: totalDeals=${totalDeals}, recentActivity=${recentActivity.length}`,
     );
 
-    // 🔥 Ordenar por timestamp REAL (más reciente primero)
+    // Ordenar por timestamp real (más reciente primero)
     recentActivity.sort((a, b) => b.timestampMs - a.timestampMs);
 
-    // Top 10 actividades
     const topActivity = recentActivity.slice(0, 10);
 
-    // Calculate derived metrics
     const avgDealSize =
       totalDeals > 0 ? Math.round(totalAmount / totalDeals) : 0;
     const successRate =
       totalDeals > 0 ? Math.round((closedDeals / totalDeals) * 100) : 100;
 
-    // Time saved calculation: 210 sec per sync
     const totalTimeSavedSec = totalDeals * 210;
     const timeSavedHours = Math.round(totalTimeSavedSec / 3600);
 
     const activeAutomations = 4;
 
-    // Response
     const metrics = {
       overview: {
         syncedToday: {
@@ -184,7 +162,7 @@ export async function GET() {
               : "Unknown",
           }
         : null,
-      recentActivity: topActivity.map(({ ...activity }) => ({
+      recentActivity: topActivity.map(({ timestampMs: _ts, ...activity }) => ({
         ...activity,
         description: `Synced deal ${activity.dealId} for ${activity.customer} ($${activity.amount.toLocaleString()})`,
         status: "success" as const,
@@ -227,6 +205,40 @@ export async function GET() {
       { status: 500 },
     );
   }
+}
+
+// ------------------ Helpers ------------------
+
+function parseTimestamp(input: string): Date | null {
+  if (!input) return null;
+
+  // 1) ISO o casi-ISO (lo que entiende Date de serie)
+  const isoCandidate = input.includes("T") ? input : input.replace(" ", "T");
+  let d = new Date(isoCandidate);
+  if (!isNaN(d.getTime())) return d;
+
+  // 2) Formato tipo DD/MM/YYYY [HH:MM[:SS]]
+  const match = input.match(
+    /(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/,
+  );
+  if (match) {
+    const [, day, month, year, hour = "0", min = "0", sec = "0"] = match;
+    const parsed = new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(min),
+      Number(sec),
+    );
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+
+  // 3) Último intento: new Date() directo
+  d = new Date(input);
+  if (!isNaN(d.getTime())) return d;
+
+  return null;
 }
 
 function formatRelativeTime(date: Date): string {
