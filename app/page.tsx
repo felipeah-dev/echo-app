@@ -1,4 +1,4 @@
-//app/page.tsx (esto es la landingpage)
+// app/page.tsx
 
 'use client'
 
@@ -12,6 +12,7 @@ import { useState } from "react"
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showVideo, setShowVideo] = useState(false)
 
   // Datos para las secciones
   const manualSteps = [
@@ -196,32 +197,68 @@ export default function LandingPage() {
             </div>
 
             {/* Promotional Video */}
-            <div className="mt-12 sm:mt-16 max-w-5xl mx-auto px-4">
-              <div className="aspect-video bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg sm:rounded-xl shadow-2xl flex items-center justify-center relative overflow-hidden">
-                {/* Subtle pattern overlay */}
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute inset-0" style={{
-                    backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
-                    backgroundSize: '20px 20px sm:30px sm:30px'
-                  }} />
-                </div>
-                
-                <div className="relative z-10 text-center px-4">
-                  <div className="mb-3 sm:mb-4">
-                    <div className="inline-block p-3 sm:p-4 bg-white/10 rounded-full mb-3 sm:mb-4 backdrop-blur-sm">
-                      <PlayCircle className="h-10 w-10 sm:h-16 sm:w-16 text-white" />
-                    </div>
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">Why ECHO Changes Everything</h3>
-                  <p className="text-white/90 text-xs sm:text-sm mb-3 sm:mb-4">See the problem ECHO solves—explained simply</p>
-                  <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 hover:scale-105 transition-transform text-sm sm:text-base">
-                    <PlayCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    Watch Now
-                  </Button>
-                  <p className="text-white/70 text-xs sm:text-sm mt-2 sm:mt-3">2 minutes • No signup required</p>
-                </div>
+<div className="mt-12 sm:mt-16 max-w-5xl mx-auto px-4">
+  <div className="aspect-video rounded-lg sm:rounded-xl shadow-2xl overflow-hidden bg-black">
+    {showVideo ? (
+      // === AQUÍ SE VE EL VIDEO DE GOOGLE DRIVE ===
+      <iframe
+        src="https://drive.google.com/file/d/1a6E_jPh_XYzf9eQRB8eWEnmnCIEUfGIe/preview"
+        title="ECHO demo video"
+        className="w-full h-full"
+        allow="autoplay; encrypted-media"
+        allowFullScreen
+      />
+    ) : (
+      // === COVER BONITO HASTA QUE LE DEN CLICK A WATCH NOW ===
+      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 relative flex items-center justify-center">
+        {/* Patrón sutil */}
+        <div className="absolute inset-0 opacity-10">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+              backgroundSize: "20px 20px"
+            }}
+          />
+        </div>
+
+        <div className="relative z-10 text-center px-4">
+          {/* Icono redondo de play */}
+          <div className="mb-4 flex justify-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/15 backdrop-blur-md">
+              <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/20">
+                <PlayCircle className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
               </div>
             </div>
+          </div>
+
+          <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+            Why ECHO Changes Everything
+          </h3>
+          <p className="text-white/90 text-xs sm:text-sm mb-4">
+            See the problem ECHO solves—explained simply
+          </p>
+
+          {/* ESTE BOTÓN CAMBIA EL COVER POR EL IFRAME */}
+          <Button
+            type="button"
+            size="lg"
+            onClick={() => setShowVideo(true)}
+            className="bg-white text-purple-600 hover:bg-gray-100 hover:scale-105 transition-transform text-sm sm:text-base"
+          >
+            <PlayCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+            Watch Now
+          </Button>
+
+          <p className="text-white/70 text-xs sm:text-sm mt-3">
+            2 minutes • No signup required
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
+
           </div>
         </div>
       </section>
