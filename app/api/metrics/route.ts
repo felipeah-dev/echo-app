@@ -5,11 +5,23 @@
 import { NextResponse } from "next/server";
 import { readFromSheet } from "@/lib/integrations/sheets";
 
+type RecentActivityItem = {
+  id: string;
+  dealId: string;
+  customer: string;
+  amount: number;
+  status: string;
+  time: string;
+  type: string;
+  // 🔥 usamos esto solo para ordenar, no se envía al front
+  timestampMs: number;
+};
+
 export async function GET() {
   try {
     console.log("📊 Fetching real metrics from Google Sheets...");
 
-    // Lee todas las columnas A:E: [timestamp, dealId, customer, amount, status]
+    // Read all data
     const result = await readFromSheet("A:E");
 
     if (!result.success || !result.data) {
@@ -18,7 +30,7 @@ export async function GET() {
 
     const rows = result.data;
 
-    // Saltar cabecera si la primera celda contiene "timestamp"
+    // Skip header row if exists
     const dataRows =
       rows.length > 0 &&
       typeof rows[0][0] === "string" &&
@@ -28,37 +40,25 @@ export async function GET() {
 
     console.log(`✅ Read ${dataRows.length} rows from Sheets`);
 
-    // --------- Acumuladores de métricas ----------
-
+    // Calculate metrics
     let totalDeals = 0;
     let totalAmount = 0;
     let openDeals = 0;
     let closedDeals = 0;
     let pendingDeals = 0;
-
     let lastDealTimestamp: Date | null = null;
     let lastDealCustomer: string | null = null;
     let lastDealId: string | null = null;
     let lastDealAmount: number | null = null;
 
-    // Guardamos la actividad con el timestamp real para ordenar bien
-    const activityRaw: Array<{
-      id: string;
-      dealId: string;
-      customer: string;
-      amount: number;
-      status: string;
-      timestamp: Date;
-    }> = [];
-
-    // --------- Procesar filas ----------
+    const recentActivity: RecentActivityItem[] = [];
 
     for (const row of dataRows) {
       if (row.length < 4) continue;
 
       const [timestampStr, dealId, customer, amountStr, status] = row;
 
-      // Limpiar amount (remover $, comas)
+      // ⭐ Limpiar amount (remover $, comas)
       const cleanAmount = amountStr?.toString().replace(/[$,]/g, "") || "0";
       const amount = parseFloat(cleanAmount);
 
@@ -69,33 +69,36 @@ export async function GET() {
       totalDeals++;
       totalAmount += amount;
 
-      // Contar por status
+      // Count by status
       const statusLower = (status?.toString() || "open").toLowerCase();
       if (statusLower === "closed") closedDeals++;
       else if (statusLower === "pending") pendingDeals++;
       else openDeals++;
 
-      // Parsear timestamp (DD/MM/YYYY HH:mm:ss o ISO)
+      // ⭐ Parsear timestamp (soporta DD/MM/YYYY HH:MM:SS o ISO)
       try {
-        const tsStr = timestampStr?.toString() || "";
         let timestampISO = "";
+        const tsStr = timestampStr?.toString() || "";
 
+        // Intentar parsear formato: "22/11/2025 22:06:36"
         const match = tsStr.match(
-          /(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/
+          /(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/,
         );
 
         if (match) {
           const [, day, month, year, hour, min, sec] = match;
           timestampISO = `${year}-${month}-${day}T${hour}:${min}:${sec}`;
         } else {
-          // Si ya viene en ISO, esto lo deja casi igual
+          // Si no machea, intentar usarlo tal cual (ISO, etc.)
           timestampISO = tsStr.replace(" ", "T");
         }
 
         const timestamp = new Date(timestampISO);
 
         if (!isNaN(timestamp.getTime())) {
-          // Último deal
+          const tsMs = timestamp.getTime();
+
+          // Track "last deal"
           if (!lastDealTimestamp || timestamp > lastDealTimestamp) {
             lastDealTimestamp = timestamp;
             lastDealCustomer = customer?.toString() || "Unknown";
@@ -103,14 +106,16 @@ export async function GET() {
             lastDealAmount = amount;
           }
 
-          // Guardar actividad cruda con timestamp real
-          activityRaw.push({
-            id: `${dealId}-${timestamp.getTime()}`,
+          // Agregar a actividad reciente
+          recentActivity.push({
+            id: `${dealId}-${tsMs}`,
             dealId: dealId?.toString() || "Unknown",
             customer: customer?.toString() || "Unknown",
             amount,
             status: statusLower,
-            timestamp,
+            time: formatRelativeTime(timestamp),
+            type: "sync",
+            timestampMs: tsMs,
           });
         }
       } catch {
@@ -119,36 +124,31 @@ export async function GET() {
     }
 
     console.log(
-      `📊 Processed: totalDeals=${totalDeals}, rawActivity=${activityRaw.length}`
+      `📊 Processed: totalDeals=${totalDeals}, recentActivity=${recentActivity.length}`,
     );
 
-    // --------- Ordenar por timestamp real y tomar top 10 ----------
+    // 🔥 Ordenar por timestamp REAL (más reciente primero)
+    recentActivity.sort((a, b) => b.timestampMs - a.timestampMs);
 
-    activityRaw.sort(
-      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-    );
+    // Top 10 actividades
+    const topActivity = recentActivity.slice(0, 10);
 
-    const topActivity = activityRaw.slice(0, 10);
-
-    // --------- Métricas derivadas ----------
-
+    // Calculate derived metrics
     const avgDealSize =
       totalDeals > 0 ? Math.round(totalAmount / totalDeals) : 0;
     const successRate =
       totalDeals > 0 ? Math.round((closedDeals / totalDeals) * 100) : 100;
 
-    // 210 sec por sync
+    // Time saved calculation: 210 sec per sync
     const totalTimeSavedSec = totalDeals * 210;
     const timeSavedHours = Math.round(totalTimeSavedSec / 3600);
 
     const activeAutomations = 4;
 
-    // --------- Construir respuesta ----------
-
+    // Response
     const metrics = {
       overview: {
         syncedToday: {
-          // de momento igual al total (puedes refinar luego por fecha)
           value: totalDeals,
           change: 12,
         },
@@ -184,16 +184,11 @@ export async function GET() {
               : "Unknown",
           }
         : null,
-      recentActivity: topActivity.map((activity) => ({
-        id: activity.id,
-        dealId: activity.dealId,
-        customer: activity.customer,
-        amount: activity.amount,
-        // el badge de la UI usa "success" fijo
-        status: "success" as const,
-        time: formatRelativeTime(activity.timestamp),
-        timeSaved: 210,
+      recentActivity: topActivity.map(({ timestampMs, ...activity }) => ({
+        ...activity,
         description: `Synced deal ${activity.dealId} for ${activity.customer} ($${activity.amount.toLocaleString()})`,
+        status: "success" as const,
+        timeSaved: 210,
       })),
     };
 
@@ -229,12 +224,10 @@ export async function GET() {
         lastDeal: null,
         recentActivity: [],
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-// ========= Helpers =========
 
 function formatRelativeTime(date: Date): string {
   const now = new Date();
