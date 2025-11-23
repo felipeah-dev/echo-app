@@ -97,15 +97,17 @@ export async function GET() {
       }
 
       recentActivity.push({
-        id: `${dealId}-${tsMs}`,
-        dealId: dealId?.toString() || "Unknown",
-        customer: customer?.toString() || "Unknown",
-        amount,
-        status: statusLower,
-        time: formatRelativeTime(timestamp),
-        type: "sync",
-        timestampMs: tsMs,
-      });
+      id: `${dealId}-${tsMs}`,
+      dealId: dealId?.toString() || "Unknown",
+      customer: customer?.toString() || "Unknown",
+      amount,
+      status: statusLower,
+      time: tsStr, 
+      type: "sync",
+      timestampMs: tsMs,
+    });
+
+
     }
 
     console.log(
