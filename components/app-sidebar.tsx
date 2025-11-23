@@ -79,24 +79,9 @@ export function AppSidebar() {
         </SidebarMenuButton>
       </SidebarMenuItem>
 
-      <SidebarMenuItem>
-        <SidebarMenuButton asChild>
-          <Link href="/dashboard/automations">
-            <Zap className="h-4 w-4" />
-            <span>Automations</span>
-            <Badge className="ml-auto bg-purple-500">12</Badge>
-          </Link>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
+      
 
-      <SidebarMenuItem>
-        <SidebarMenuButton asChild>
-          <Link href="/dashboard/activity">
-            <Activity className="h-4 w-4" />
-            <span>Activity Log</span>
-          </Link>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
+     
     </SidebarMenu>
   </SidebarGroupContent>
 </SidebarGroup>
@@ -162,21 +147,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Settings */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/dashboard/settings">
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        
       </SidebarContent>
 
       <SidebarFooter>

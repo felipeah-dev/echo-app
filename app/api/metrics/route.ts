@@ -162,10 +162,16 @@ export async function GET() {
               : "Unknown",
           }
         : null,
-      recentActivity: topActivity.map(({ timestampMs: _ts, ...activity }) => ({
-        ...activity,
+      
+      recentActivity: topActivity.map((activity) => ({
+        id: activity.id,
+        dealId: activity.dealId,
+        customer: activity.customer,
+        amount: activity.amount,
+        status: "success" as const, // forzamos "success"
+        time: activity.time,
+        type: activity.type,
         description: `Synced deal ${activity.dealId} for ${activity.customer} ($${activity.amount.toLocaleString()})`,
-        status: "success" as const,
         timeSaved: 210,
       })),
     };
@@ -212,12 +218,12 @@ export async function GET() {
 function parseTimestamp(input: string): Date | null {
   if (!input) return null;
 
-  // 1) ISO o casi-ISO (lo que entiende Date de serie)
+  // 1) ISO o casi-ISO
   const isoCandidate = input.includes("T") ? input : input.replace(" ", "T");
   let d = new Date(isoCandidate);
   if (!isNaN(d.getTime())) return d;
 
-  // 2) Formato tipo DD/MM/YYYY [HH:MM[:SS]]
+  // 2) Formato DD/MM/YYYY [HH:MM[:SS]]
   const match = input.match(
     /(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/,
   );
@@ -234,7 +240,7 @@ function parseTimestamp(input: string): Date | null {
     if (!isNaN(parsed.getTime())) return parsed;
   }
 
-  // 3) Último intento: new Date() directo
+  // 3) Último intento
   d = new Date(input);
   if (!isNaN(d.getTime())) return d;
 
