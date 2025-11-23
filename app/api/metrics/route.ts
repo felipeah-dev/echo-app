@@ -9,14 +9,9 @@ export async function GET(request: NextRequest) {
   try {
     console.log("📊 Fetching real metrics from Google Sheets...");
 
-    // Read all data from Sheet1
-    const result = await readFromSheet("Sheet1!A:E"); // Columns: Timestamp, DealID, Customer, Amount, Status
-console.log("=== METRICS DEBUG ===");
-console.log("Read success:", result.success);
-console.log("Row count:", result.data?.length || 0);
-console.log("Error:", result.error);
-console.log("First 3 rows:", result.data?.slice(0, 3));
-console.log("====================");
+    // Read all data
+    const result = await readFromSheet("A:E");
+    
     if (!result.success || !result.data) {
       throw new Error(result.error || "Failed to read from sheet");
     }
@@ -52,13 +47,17 @@ console.log("====================");
     }> = [];
 
     for (const row of dataRows) {
-      if (row.length < 4) continue; // Skip incomplete rows
+      if (row.length < 4) continue;
 
       const [timestampStr, dealId, customer, amountStr, status] = row;
 
-      // Parse amount
-      const amount = parseFloat(amountStr?.toString() || "0");
-      if (isNaN(amount) || amount <= 0) continue;
+      // ⭐ FIX 1: Limpiar amount (remover $, comas) ⭐
+      const cleanAmount = amountStr?.toString().replace(/[$,]/g, "") || "0";
+      const amount = parseFloat(cleanAmount);
+      
+      if (isNaN(amount) || amount <= 0) {
+        continue;
+      }
 
       totalDeals++;
       totalAmount += amount;
@@ -69,9 +68,24 @@ console.log("====================");
       else if (statusLower === "pending") pendingDeals++;
       else openDeals++;
 
-      // Track last deal (most recent timestamp)
+      // ⭐ FIX 2: Parsear timestamp formato DD/MM/YYYY HH:MM:SS ⭐
       try {
-        const timestamp = new Date(timestampStr?.toString() || "");
+        let timestampISO = "";
+        const tsStr = timestampStr?.toString() || "";
+        
+        // Intentar parsear formato: "22/11/2025 22:06:36"
+        const match = tsStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
+        
+        if (match) {
+          const [, day, month, year, hour, min, sec] = match;
+          timestampISO = `${year}-${month}-${day}T${hour}:${min}:${sec}`;
+        } else {
+          // Si no machea, intentar parsearlo directamente
+          timestampISO = tsStr.replace(" ", "T");
+        }
+        
+        const timestamp = new Date(timestampISO);
+
         if (!isNaN(timestamp.getTime())) {
           if (!lastDealTimestamp || timestamp > lastDealTimestamp) {
             lastDealTimestamp = timestamp;
@@ -80,7 +94,7 @@ console.log("====================");
             lastDealAmount = amount;
           }
 
-          // Add to recent activity (last 10)
+          // Add to recent activity
           recentActivity.push({
             id: `${dealId}-${timestamp.getTime()}`,
             dealId: dealId?.toString() || "Unknown",
@@ -96,6 +110,8 @@ console.log("====================");
       }
     }
 
+    console.log(`📊 Processed: totalDeals=${totalDeals}, recentActivity=${recentActivity.length}`);
+
     // Sort recent activity by most recent first and take top 10
     recentActivity.sort((a, b) => {
       const timeA = parseRelativeTime(a.time);
@@ -110,10 +126,9 @@ console.log("====================");
     const successRate = totalDeals > 0 ? Math.round((closedDeals / totalDeals) * 100) : 100;
 
     // Time saved calculation: 210 sec per sync
-    const totalTimeSavedSec = totalDeals * 210; // 3.5 min per deal
+    const totalTimeSavedSec = totalDeals * 210;
     const timeSavedHours = Math.round(totalTimeSavedSec / 3600);
 
-    // Automation count (mock for now - in real app would come from automation rules)
     const activeAutomations = 4;
 
     // Response
@@ -121,7 +136,7 @@ console.log("====================");
       overview: {
         syncedToday: {
           value: totalDeals,
-          change: 12, // Mock change percentage
+          change: 12,
         },
         timeSaved: {
           value: timeSavedHours,
@@ -157,7 +172,7 @@ console.log("====================");
         ...activity,
         description: `Synced deal ${activity.dealId} for ${activity.customer} ($${activity.amount.toLocaleString()})`,
         status: "success" as const,
-        timeSaved: 210, // seconds per sync
+        timeSaved: 210,
       })),
     };
 
@@ -175,7 +190,6 @@ console.log("====================");
     return NextResponse.json(
       {
         error: errorMessage,
-        // Return fallback metrics
         overview: {
           syncedToday: { value: 0, change: 0 },
           timeSaved: { value: 0, change: 0 },
@@ -198,9 +212,6 @@ console.log("====================");
   }
 }
 
-/**
- * Format date as relative time (e.g., "2 min ago", "3 hours ago")
- */
 function formatRelativeTime(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -215,9 +226,6 @@ function formatRelativeTime(date: Date): string {
   return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
 }
 
-/**
- * Parse relative time string back to timestamp (for sorting)
- */
 function parseRelativeTime(timeStr: string): number {
   const match = timeStr.match(/(\d+)\s+(sec|min|hour|day)/);
   if (!match) return 0;

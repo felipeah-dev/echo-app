@@ -1,7 +1,8 @@
+//components/custom/LiveCounter.tsx
 "use client";
 
 // ==============================================
-// ECHO - Live Counter Component (Simplified)
+// ECHO - Live Counter Component (Real Data Mode)
 // ==============================================
 
 import { useEffect, useState } from "react";
@@ -28,22 +29,17 @@ export function LiveCounter({
   const [value, setValue] = useState(initialValue);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Simulate live updates (seeded data) - Slower pace
+  // ⭐ Detect real data changes (not simulated) ⭐
   useEffect(() => {
-    if (!enableLiveUpdates) return;
-
-    const interval = setInterval(() => {
-      // Randomly increment by 1-3
-      const increment = Math.floor(Math.random() * 3) + 1;
-      setValue((prev) => prev + increment);
+    if (initialValue !== value) {
+      // Real data changed!
+      setValue(initialValue);
       
-      // Show brief update indicator
+      // Show update indicator
       setIsUpdating(true);
-      setTimeout(() => setIsUpdating(false), 800);
-    }, 8000); // Every 8 seconds (slower, less distracting)
-
-    return () => clearInterval(interval);
-  }, [enableLiveUpdates]);
+      setTimeout(() => setIsUpdating(false), 1500);
+    }
+  }, [initialValue]); // Trigger when real data changes
 
   const colorClasses = {
     indigo: "from-indigo-500 to-indigo-600",
@@ -68,9 +64,17 @@ export function LiveCounter({
           {enableLiveUpdates && (
             <Badge 
               variant="outline" 
-              className={`text-xs gap-1 ${isUpdating ? "border-green-500 text-green-600" : "border-muted text-muted-foreground"}`}
+              className={`text-xs gap-1 transition-all duration-300 ${
+                isUpdating 
+                  ? "border-green-500 text-green-600 bg-green-50" 
+                  : "border-purple-500/50 text-purple-600"
+              }`}
             >
-              <span className={`h-1.5 w-1.5 rounded-full ${isUpdating ? "bg-green-500" : "bg-muted"}`} />
+              <span className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
+                isUpdating 
+                  ? "bg-green-500 animate-pulse" 
+                  : "bg-purple-500"
+              }`} />
               Live
             </Badge>
           )}
@@ -81,8 +85,12 @@ export function LiveCounter({
           {label}
         </div>
 
-        {/* Value */}
-        <div className={`text-3xl font-bold bg-gradient-to-r ${colorClasses[color]} bg-clip-text text-transparent transition-all duration-300`}>
+        {/* Value with animation on change */}
+        <div 
+          className={`text-3xl font-bold bg-gradient-to-r ${colorClasses[color]} bg-clip-text text-transparent transition-all duration-500 ${
+            isUpdating ? "scale-110" : "scale-100"
+          }`}
+        >
           {value.toLocaleString()}
           {unit && <span className="text-lg ml-1">{unit}</span>}
         </div>
