@@ -69,11 +69,14 @@ export async function POST(request: NextRequest) {
         console.log(`   Failed: ${failed.join(", ") || "none"}`);
 
         const response: SyncResponse = {
-            success: failed.length === 0,
-            synced,
-            failed,
-            timeSavedSec,
-            decisionLog,
+        success: failed.length === 0,
+        synced,
+        failed,
+        timeSavedSec,
+        decisionLog,
+        // 🔽 Agregamos esto:
+        amount: syncRequest.data.amount,
+        source: syncRequest.source,
         };
 
         return NextResponse.json(response, {

@@ -15,6 +15,7 @@
     createdAt?: Date;
     updatedAt?: Date;
     }
+    
 
     /**
      * Sync request payload
@@ -30,11 +31,8 @@
     /**
      * Available sync targets
      */
-    export type SyncTarget = "slack" | "sheets" | "email" | "calendar";
+    export type SyncTarget = 'slack' | 'sheets' | 'email' | 'calendar';
 
-    /**
-     * Sync response
-     */
     export interface SyncResponse {
     success: boolean;
     synced: SyncTarget[];
@@ -42,6 +40,10 @@
     timeSavedSec: number;
     decisionLog: string[];
     error?: string;
+
+    // 🔮 Campos nuevos para Predictive Alerts
+    amount?: number;                         // monto del deal sincronizado
+    source?: 'crm' | 'sheet' | 'manual';     // misma idea que SyncSource
     }
 
     /**
