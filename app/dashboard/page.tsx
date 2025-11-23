@@ -6,8 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { LiveCounter } from "@/components/custom/LiveCounter";
-import type { PatternAlert } from "@/lib/patternDetection/types"; // <- ya no se usa, puedes borrarlo si quieres
-import type { SyncResponse } from "@/lib/types"; // <- ya no se usa, puedes borrarlo si quieres
+
 
 import {
   Card,
