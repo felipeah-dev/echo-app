@@ -184,7 +184,7 @@ export async function GET() {
               : "Unknown",
           }
         : null,
-      recentActivity: topActivity.map(({ timestampMs, ...activity }) => ({
+      recentActivity: topActivity.map(({ ...activity }) => ({
         ...activity,
         description: `Synced deal ${activity.dealId} for ${activity.customer} ($${activity.amount.toLocaleString()})`,
         status: "success" as const,
