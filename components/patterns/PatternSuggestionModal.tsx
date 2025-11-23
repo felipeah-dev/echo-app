@@ -11,11 +11,11 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { UserAction } from '@/lib/patternDetection/types';
+import type { UserAction } from '@/lib/patternDetection/types';
 
 function actionLabel(action: UserAction): string {
   const base = `${action.tool.toUpperCase()} – ${action.type}`;
-  if (action.context.entityType) {
+  if (action.context?.entityType) {
     return `${base} (${action.context.entityType})`;
   }
   return base;
